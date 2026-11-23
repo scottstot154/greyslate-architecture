@@ -4,16 +4,17 @@ import { projectSchema, samples, studioSchema } from "../../../lib/portfolio";
 import { saveProject, saveStudio } from "../../../lib/project-store";
 
 const revisionSchema = z.string().datetime().nullable();
+const studioWriteSchema = z.object({type: z.literal("studio"), studio: studioSchema});
 
 export async function PUT(request: Request) {
   const denied = await guardEditorWrite(request);
   if (denied) return denied;
   const input = await request.json().catch(() => null);
-  if (input?.type === "studio") {
-    const result = studioSchema.safeParse(input.studio);
+  if (input && typeof input === "object" && "type" in input && input.type === "studio") {
+    const result = studioWriteSchema.safeParse(input);
     if (!result.success) return Response.json({message: "Check the email and studio location."}, {status: 400});
-    await saveStudio(result.data);
-    return Response.json({studio: result.data});
+    await saveStudio(result.data.studio);
+    return Response.json({studio: result.data.studio});
   }
   const result = z.object({project: projectSchema, published: z.boolean(), revision: revisionSchema}).safeParse(input);
   if (!result.success) {

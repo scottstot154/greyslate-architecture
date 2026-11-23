@@ -11,14 +11,17 @@ const emptyProject: ProjectEntry = {
   published: false, updatedAt: null,
 };
 
-async function editorRequest(url: string, method: string, body: FormData | Record<string, unknown>) {
+async function editorRequest<T>(url: string, method: string, body: FormData | Record<string, unknown>): Promise<T> {
   const multipart = body instanceof FormData;
   const headers: Record<string, string> = {"x-greyslate-editor": "1"};
   if (!multipart) headers["Content-Type"] = "application/json";
   const response = await fetch(url, {method, headers, body: multipart ? body : JSON.stringify(body)});
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.message ?? "Could not save your changes. Please try again.");
-  return result;
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result) {
+    const message = result && typeof result === "object" && "message" in result && typeof result.message === "string" ? result.message : null;
+    throw new Error(message ?? "Could not save your changes. Please try again.");
+  }
+  return result as T;
 }
 
 function PhotoInput({title, photo, onChange, onUpload}: {title: string; photo: Photo; onChange: (value: Photo) => void; onUpload: (busy: boolean) => void}) {
@@ -38,7 +41,7 @@ function PhotoInput({title, photo, onChange, onUpload}: {title: string; photo: P
         const form = new FormData();
         form.set("image", file);
         try {
-          const {src} = await editorRequest("/api/editor/images", "POST", form);
+          const {src} = await editorRequest<{src: string}>("/api/editor/images", "POST", form);
           onChange({...photo, src});
           setStatus("Uploaded.");
         } catch (error) {
@@ -74,7 +77,7 @@ function ProjectForm({entry, isNew, onSave, onUpload, uploading}: {
     setBusy(true);
     setMessage("");
     try {
-      const saved = await editorRequest("/api/editor", "PUT", {project, published, revision: entry.updatedAt});
+      const saved = await editorRequest<ProjectEntry>("/api/editor", "PUT", {project, published, revision: entry.updatedAt});
       onSave(saved);
       setMessage(saved.published ? "Project published." : "Draft saved.");
     } catch (error) {setMessage(error instanceof Error ? error.message : "Save failed.");}
@@ -167,7 +170,7 @@ function StudioForm({initialStudio, onSave}: {initialStudio: Studio; onSave: (st
   return <form className="editor-form" onSubmit={async (event) => {
     event.preventDefault(); setBusy(true); setMessage("");
     try {
-      const saved = await editorRequest("/api/editor", "PUT", {type: "studio", studio});
+      const saved = await editorRequest<{studio: Studio}>("/api/editor", "PUT", {type: "studio", studio});
       onSave(saved.studio);
       setMessage("Studio settings saved.");
     }
