@@ -1,10 +1,14 @@
 import { z } from "zod";
 import { guardEditorWrite } from "../../../lib/editor-access";
-import { projectSchema, samples, studioSchema } from "../../../lib/portfolio";
+import { draftProjectSchema, projectSchema, samples, studioSchema } from "../../../lib/portfolio";
 import { saveProject, saveStudio } from "../../../lib/project-store";
 
 const revisionSchema = z.string().datetime().nullable();
 const studioWriteSchema = z.object({type: z.literal("studio"), studio: studioSchema});
+const projectWriteSchema = z.discriminatedUnion("published", [
+  z.object({published: z.literal(false), project: draftProjectSchema, revision: revisionSchema}),
+  z.object({published: z.literal(true), project: projectSchema, revision: revisionSchema}),
+]);
 
 export async function PUT(request: Request) {
   const denied = await guardEditorWrite(request);
@@ -16,7 +20,7 @@ export async function PUT(request: Request) {
     await saveStudio(result.data.studio);
     return Response.json({studio: result.data.studio});
   }
-  const result = z.object({project: projectSchema, published: z.boolean(), revision: revisionSchema}).safeParse(input);
+  const result = projectWriteSchema.safeParse(input);
   if (!result.success) {
     const {path, message} = result.error.issues[0];
     return Response.json({message: `${path.join(".")}: ${message}`}, {status: 400});

@@ -24,7 +24,9 @@ async function editorRequest<T>(url: string, method: string, body: FormData | Re
   return result as T;
 }
 
-function PhotoInput({title, photo, onChange, onUpload}: {title: string; photo: Photo; onChange: (value: Photo) => void; onUpload: (busy: boolean) => void}) {
+function PhotoInput({title, photo, onChange, onUpload, required}: {
+  title: string; photo: Photo; onChange: (value: Photo) => void; onUpload: (busy: boolean) => void; required: boolean;
+}) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   return <fieldset className="editor-photo">
@@ -54,7 +56,7 @@ function PhotoInput({title, photo, onChange, onUpload}: {title: string; photo: P
       }}/>
     </label>
     {status && <p role="status" className="form-note">{status}</p>}
-    <label>Image description<input value={photo.alt} maxLength={200} onChange={(event) => onChange({...photo, alt: event.target.value})} required disabled={busy}/></label>
+    <label>Image description<input value={photo.alt} maxLength={200} onChange={(event) => onChange({...photo, alt: event.target.value})} required={required} disabled={busy}/></label>
     <div className="form-grid">
       <label>Credit<input value={photo.credit} maxLength={160} onChange={(event) => onChange({...photo, credit: event.target.value})} disabled={busy}/></label>
       <label>Image type<select value={photo.kind} onChange={(event) => onChange({...photo, kind: event.target.value as Photo["kind"]})} disabled={busy}>
@@ -64,24 +66,26 @@ function PhotoInput({title, photo, onChange, onUpload}: {title: string; photo: P
   </fieldset>;
 }
 
-function ProjectForm({entry, isNew, onSave, onUpload, uploading}: {
-  entry: ProjectEntry; isNew: boolean; onSave: (entry: ProjectEntry) => void; onUpload: (busy: boolean) => void; uploading: boolean;
+function ProjectForm({entry, isNew, onSave, setSaving, onUpload, uploading, savedMessage}: {
+  entry: ProjectEntry; isNew: boolean; onSave: (entry: ProjectEntry) => void; setSaving: (busy: boolean) => void;
+  onUpload: (busy: boolean) => void; uploading: boolean; savedMessage: string;
 }) {
   const [project, setProject] = useState(entry.project);
   const [published, setPublished] = useState(entry.published);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
   const assign = <K extends keyof Project,>(key: K, value: Project[K]) => setProject((previous) => ({...previous, [key]: value}));
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
+    setSaving(true);
     setMessage("");
     try {
       const saved = await editorRequest<ProjectEntry>("/api/editor", "PUT", {project, published, revision: entry.updatedAt});
       onSave(saved);
-      setMessage(saved.published ? "Project published." : "Draft saved.");
+      setMessage(null);
     } catch (error) {setMessage(error instanceof Error ? error.message : "Save failed.");}
-    finally {setBusy(false);}
+    finally {setBusy(false); setSaving(false);}
   }
   return <form className="editor-form" onSubmit={submit}><fieldset className="project-fields" disabled={uploading || busy}>
     <legend className="sr-only">Project information</legend>
@@ -99,17 +103,17 @@ function ProjectForm({entry, isNew, onSave, onUpload, uploading}: {
       <label>Stage<select value={project.stage} onChange={(e) => assign("stage", e.target.value as Project["stage"])}>
         {stages.map((value) => <option key={value}>{value}</option>)}
       </select></label>
-      <label>City or region<input value={project.location} onChange={(e) => assign("location", e.target.value)} maxLength={100} required/></label>
-      <label>Year<input value={project.year} onChange={(e) => assign("year", e.target.value)} inputMode="numeric" pattern="[0-9]{4}" required/></label>
+      <label>City or region<input value={project.location} onChange={(e) => assign("location", e.target.value)} maxLength={100} required={published}/></label>
+      <label>Year<input value={project.year} onChange={(e) => assign("year", e.target.value)} inputMode="numeric" pattern="[0-9]{4}" required={published}/></label>
     </div>
-    <label>Firm scope<input value={project.scope} onChange={(e) => assign("scope", e.target.value)} maxLength={160} required/></label>
-    <label>Summary<textarea rows={2} value={project.summary} onChange={(e) => assign("summary", e.target.value)} maxLength={350} required/></label>
-    <label>Design approach<textarea rows={5} value={project.story} onChange={(e) => assign("story", e.target.value)} maxLength={5000} required/></label>
-    <PhotoInput title="Cover image" photo={project.cover} onChange={(photo) => assign("cover", photo)} onUpload={onUpload}/>
+    <label>Firm scope<input value={project.scope} onChange={(e) => assign("scope", e.target.value)} maxLength={160} required={published}/></label>
+    <label>Summary<textarea rows={2} value={project.summary} onChange={(e) => assign("summary", e.target.value)} maxLength={350} required={published}/></label>
+    <label>Design approach<textarea rows={5} value={project.story} onChange={(e) => assign("story", e.target.value)} maxLength={5000} required={published}/></label>
+    <PhotoInput title="Cover image" photo={project.cover} onChange={(photo) => assign("cover", photo)} onUpload={onUpload} required={published}/>
     <fieldset className="editor-fieldset">
       <legend>Project gallery</legend>
       {project.gallery.map((photo, index) => <div key={index} className="editor-repeat">
-        <PhotoInput title={`Gallery image ${index + 1}`} photo={photo} onUpload={onUpload}
+        <PhotoInput title={`Gallery image ${index + 1}`} photo={photo} onUpload={onUpload} required={published}
           onChange={(value) => assign("gallery", project.gallery.map((item, i) => i === index ? value : item))}/>
         <button className="icon-button" type="button" title="Remove gallery image" aria-label={`Remove gallery image ${index + 1}`}
           onClick={() => assign("gallery", project.gallery.filter((_, i) => i !== index))}><Trash2 size={16}/></button>
@@ -123,11 +127,11 @@ function ProjectForm({entry, isNew, onSave, onUpload, uploading}: {
         return <fieldset key={index} className="editor-photo">
           <legend>Update {index + 1}</legend>
           <div className="form-grid">
-            <label>Date<input type="date" value={update.date} onChange={(e) => modify({date: e.target.value})} required/></label>
-            <label>Title<input value={update.title} onChange={(e) => modify({title: e.target.value})} maxLength={120} required/></label>
+            <label>Date<input type="date" value={update.date} onChange={(e) => modify({date: e.target.value})} required={published}/></label>
+            <label>Title<input value={update.title} onChange={(e) => modify({title: e.target.value})} maxLength={120} required={published}/></label>
           </div>
-          <label>Milestone<textarea rows={3} value={update.note} onChange={(e) => modify({note: e.target.value})} maxLength={1800} required/></label>
-          {update.image && <PhotoInput title="Update image" photo={update.image} onChange={(image) => modify({image})} onUpload={onUpload}/>}
+          <label>Milestone<textarea rows={3} value={update.note} onChange={(e) => modify({note: e.target.value})} maxLength={1800} required={published}/></label>
+          {update.image && <PhotoInput title="Update image" photo={update.image} onChange={(image) => modify({image})} onUpload={onUpload} required={published}/>}
           <div className="editor-actions">
             <button className="button button-outline" type="button" onClick={() => modify({image: update.image ? undefined : {...emptyPhoto, kind: "Site photograph"}})}>
               {update.image ? "Remove update image" : "Add update image"}
@@ -142,8 +146,8 @@ function ProjectForm({entry, isNew, onSave, onUpload, uploading}: {
     {(project.comparison || project.category === "Renovation" && project.stage === "Completed") && <fieldset className="editor-fieldset">
       <legend>Before &amp; after</legend>
       {project.comparison && <div className="form-grid">
-        <PhotoInput title="Before" photo={project.comparison.before} onChange={(before) => assign("comparison", {before, after: project.comparison!.after})} onUpload={onUpload}/>
-        <PhotoInput title="After" photo={project.comparison.after} onChange={(after) => assign("comparison", {before: project.comparison!.before, after})} onUpload={onUpload}/>
+        <PhotoInput title="Before" photo={project.comparison.before} onChange={(before) => assign("comparison", {before, after: project.comparison!.after})} onUpload={onUpload} required={published}/>
+        <PhotoInput title="After" photo={project.comparison.after} onChange={(after) => assign("comparison", {before: project.comparison!.before, after})} onUpload={onUpload} required={published}/>
       </div>}
       <button className="button button-outline" type="button" onClick={() => assign("comparison", project.comparison ? undefined : {before: emptyPhoto, after: emptyPhoto})}>
         {project.comparison ? "Remove comparison" : "Add comparison"}
@@ -154,8 +158,8 @@ function ProjectForm({entry, isNew, onSave, onUpload, uploading}: {
     <label>Visibility<select value={published ? "published" : "draft"} onChange={(e) => setPublished(e.target.value === "published")}>
       <option value="draft">Draft</option><option value="published">Published</option>
     </select></label>
-    <div className="editor-actions"><button className="button button-primary" type="submit" disabled={busy}>{busy ? "Saving…" : published ? "Publish project" : "Save draft"}</button>
-      <p role="status">{message}</p></div>
+    <div className="editor-actions"><button className="button button-primary" type="submit" disabled={busy}>{busy ? "Saving…" : published ? "Publish project" : entry.published ? "Unpublish to draft" : "Save draft"}</button>
+      <p role="status">{message ?? savedMessage}</p></div>
   </fieldset></form>;
 }
 
@@ -191,21 +195,25 @@ export default function Editor({initialEntries, initialStudio}: {initialEntries:
   const [studio, setStudio] = useState(initialStudio);
   const [selection, setSelection] = useState(initialEntries[0]?.project.slug ?? "");
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedMessage, setSavedMessage] = useState("");
   const chosen = entries.find(({project}) => project.slug === selection) ?? emptyProject;
+  const choose = (slug: string) => {setSavedMessage(""); setSelection(slug);};
   return <div className="editor-layout">
     <aside className="editor-sidebar">
-      <button type="button" className="button button-primary" disabled={uploading} onClick={() => setSelection("")}><Plus size={16}/> New project</button>
-      <button type="button" className="button button-outline" disabled={uploading} aria-pressed={selection === ":studio"} onClick={() => setSelection(":studio")}>Studio settings</button>
+      <button type="button" className="button button-primary" disabled={uploading || saving} onClick={() => choose("")}><Plus size={16}/> New project</button>
+      <button type="button" className="button button-outline" disabled={uploading || saving} aria-pressed={selection === ":studio"} onClick={() => choose(":studio")}>Studio settings</button>
       <nav aria-label="Editable projects">
-        {entries.map(({project, published}) => <button key={project.slug} type="button" disabled={uploading} aria-pressed={selection === project.slug} onClick={() => setSelection(project.slug)}>
+        {entries.map(({project, published}) => <button key={project.slug} type="button" disabled={uploading || saving} aria-pressed={selection === project.slug} onClick={() => choose(project.slug)}>
           <strong>{project.title}</strong><small>{project.demo ? "Sample / " : ""}{published ? "Published" : "Draft"}</small>
         </button>)}
       </nav>
     </aside>
     {selection === ":studio" ? <StudioForm initialStudio={studio} onSave={setStudio}/> : <ProjectForm key={selection} entry={chosen} isNew={!selection}
-      onUpload={setUploading} uploading={uploading} onSave={(saved) => {
+      onUpload={setUploading} uploading={uploading} setSaving={setSaving} savedMessage={savedMessage} onSave={(saved) => {
       setEntries((value) => [saved, ...value.filter(({project}) => project.slug !== saved.project.slug)]);
       setSelection(saved.project.slug);
+      setSavedMessage(saved.published ? "Project published." : chosen.published ? "Project unpublished. Draft saved." : "Draft saved.");
     }}/>}
   </div>;
 }

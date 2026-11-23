@@ -6,7 +6,7 @@ A project portfolio and journal running on [Vinext](https://github.com/cloudflar
 
 1. Set `GREYSLATE_EDITOR_EMAIL` in the Sites runtime environment to the ChatGPT sign-in email of the studio editor. Restart or redeploy after changing the allowlist.
 2. Sign in at `/studio-editor`. Add a project with an approved cover image, set the named stage, and add gallery images and dated milestones as needed.
-3. Save as **Draft** to keep the project out of the portfolio, or choose **Published** and publish to make changes visible immediately. The project URL is fixed on first save. Changing a published project to Draft removes it and its unreferenced uploaded images from visitor access.
+3. Save as **Draft** with only a title and URL slug to start, then fill in the project details and approved imagery before publishing. The project URL is fixed on first save. **Unpublish to draft** removes a live project and its unreferenced uploaded images from visitor access.
 4. In **Studio settings**, set the public inquiry email and hide illustrative projects before opening the site to clients. The inquiry form opens a draft in the visitor's email app. The website does not send or store inquiries.
 
 For local editor testing, set `GREYSLATE_EDITOR_EMAIL=seedy@sites.test` in the ignored `.dev.vars` file, apply the initial migration, then sign in via the local development page. Run `node --test tests/portfolio.test.mjs` on Node 22 or later.

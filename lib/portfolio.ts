@@ -8,36 +8,60 @@ export const slugSchema = z.string().max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const imageSource = z.string().max(500).refine((value) =>
   /^\/images\/[a-z0-9.-]+\.(jpg|jpeg|webp|png|avif)$/.test(value) ||
   /^\/media\/[a-f0-9-]{36}\.(jpg|webp|png|avif)$/.test(value),
-  "Upload an image before saving."
+  "Upload an image before publishing."
 );
-export const imageSchema = z.object({
-  src: imageSource,
-  alt: z.string().trim().min(1, "Add an image description.").max(200),
+const draftImageSchema = z.object({
+  src: z.union([z.literal(""), imageSource]),
+  alt: z.string().trim().max(200),
   credit: z.string().trim().max(160),
   kind: z.enum(imageKinds),
 });
+export const imageSchema = draftImageSchema.extend({
+  src: imageSource,
+  alt: draftImageSchema.shape.alt.min(1, "Add an image description."),
+});
 const updateDate = z.string().date();
-export const projectSchema = z.object({
+const draftUpdateSchema = z.object({
+  date: z.union([z.literal(""), updateDate]),
+  title: z.string().trim().max(120),
+  note: z.string().trim().max(1800),
+  image: draftImageSchema.optional(),
+});
+const updateSchema = draftUpdateSchema.extend({
+  date: updateDate,
+  title: draftUpdateSchema.shape.title.min(1),
+  note: draftUpdateSchema.shape.note.min(1),
+  image: imageSchema.optional(),
+});
+const year = z.string().trim().regex(/^\d{4}$/);
+export const draftProjectSchema = z.object({
   slug: slugSchema,
   title: z.string().trim().min(1).max(100),
   category: z.enum(categories),
   stage: z.enum(stages),
-  location: z.string().trim().min(1).max(100),
-  year: z.string().trim().regex(/^\d{4}$/),
-  scope: z.string().trim().min(1).max(160),
-  summary: z.string().trim().min(1).max(350),
-  story: z.string().trim().min(1).max(5000),
-  cover: imageSchema,
-  gallery: z.array(imageSchema).max(24),
-  updates: z.array(z.object({
-    date: updateDate,
-    title: z.string().trim().min(1).max(120),
-    note: z.string().trim().min(1).max(1800),
-    image: imageSchema.optional(),
-  })).max(30),
-  comparison: z.object({ before: imageSchema, after: imageSchema }).optional(),
+  location: z.string().trim().max(100),
+  year: z.union([z.literal(""), year]),
+  scope: z.string().trim().max(160),
+  summary: z.string().trim().max(350),
+  story: z.string().trim().max(5000),
+  cover: draftImageSchema,
+  gallery: z.array(draftImageSchema).max(24),
+  updates: z.array(draftUpdateSchema).max(30),
+  comparison: z.object({ before: draftImageSchema, after: draftImageSchema }).optional(),
   featured: z.boolean(),
   demo: z.boolean(),
+});
+
+export const projectSchema = draftProjectSchema.extend({
+  location: draftProjectSchema.shape.location.min(1),
+  year,
+  scope: draftProjectSchema.shape.scope.min(1),
+  summary: draftProjectSchema.shape.summary.min(1),
+  story: draftProjectSchema.shape.story.min(1),
+  cover: imageSchema,
+  gallery: z.array(imageSchema).max(24),
+  updates: z.array(updateSchema).max(30),
+  comparison: z.object({ before: imageSchema, after: imageSchema }).optional(),
 }).superRefine((project, ctx) => {
   if (project.comparison && (project.category !== "Renovation" || project.stage !== "Completed")) {
     ctx.addIssue({ code: "custom", path: ["comparison"], message: "Before and after is only available for completed renovations." });
