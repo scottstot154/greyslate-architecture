@@ -3,11 +3,8 @@ import type { Studio } from "../lib/portfolio";
 
 export function Brand() {
   return <a className="brand" href="/" aria-label="GreySlate home">
-    <svg viewBox="0 0 36 36" width="36" height="36" aria-hidden="true">
-      <rect width="36" height="36" fill="currentColor"/>
-      <path d="M8 26V10h20L13 26H8Zm20 0H17l11-12v12Z" fill="var(--brand-paper, #fff)"/>
-    </svg>
-    <span><strong>GreySlate</strong><small>ARCHITECTURE STUDIO</small></span>
+    <img src="/images/greyslate-logo.png" alt="" width={1600} height={357}/>
+    <small>ARCHITECTURE STUDIO</small>
   </a>;
 }
 
