@@ -224,7 +224,9 @@ textarea { resize: vertical; }
 .form-note { color: var(--muted); font-size: .875rem; }
 .site-footer { border-top: 1px solid var(--line); background: #fff; }
 .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-block: 26px; }
-.footer-inner > span, .footer-inner > .plain-link { color: var(--muted); font-size: .875rem; }
+.footer-inner > span, .footer-meta { color: var(--muted); font-size: .875rem; }
+.footer-meta { display: grid; justify-items: end; gap: 5px; }
+.developer-credit { font-size: .75rem; }
 
 .case-intro { padding-block: 44px 32px; }
 .case-intro .plain-link { display: inline-block; margin-bottom: 32px; font-size: .9375rem; text-decoration: underline; text-underline-offset: 4px; }
@@ -304,6 +306,8 @@ textarea { resize: vertical; }
   .mobile-nav summary::-webkit-details-marker { display: none; }
   .mobile-nav nav { position: absolute; right: 18px; top: 56px; min-width: 154px; display: grid; background: #fff; border: 1px solid var(--line); }
   .mobile-nav a { display: block; padding: 12px 16px; }
+  .footer-inner { align-items: flex-start; }
+  .footer-meta { width: 100%; justify-items: start; padding-top: 4px; }
   .hero-inner { min-height: min(540px, max(400px, calc(100svh - 152px))); display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 24px; padding-block: 35px 22px; }
   .hero-copy { align-self: stretch; }
   .hero h1 { font-size: 3.25rem; }

@@ -30,7 +30,10 @@ export function Footer({studio}: {studio: Studio}) {
     <div className="shell footer-inner">
       <Brand />
       <span>{studio.location || "Architecture · Interiors · Adaptive reuse"}</span>
-      <a className="plain-link" href="/studio-editor">Studio sign-in</a>
+      <div className="footer-meta">
+        <a className="plain-link" href="/studio-editor">Studio sign-in</a>
+        <span className="developer-credit">Developed with &lt;3 by Amogh</span>
+      </div>
     </div>
   </footer>;
 }
