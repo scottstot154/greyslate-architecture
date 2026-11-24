@@ -81,10 +81,9 @@ section[id], #progress { scroll-margin-top: 24px; }
 
 .site-header { position: relative; z-index: 2; background: #fff; }
 .header-inner { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 76px; gap: 20px; }
-.brand { display: inline-flex; align-items: center; gap: 10px; line-height: 1; width: fit-content; }
-.brand svg { flex: none; }
-.brand strong { display: block; font-size: 1.25rem; }
-.brand small { display: block; margin-top: 5px; font-size: .6875rem; font-weight: 650; color: var(--muted); }
+.brand { display: inline-grid; gap: 2px; width: 174px; max-width: 100%; line-height: 1; }
+.brand img { width: 100%; height: auto; }
+.brand small { padding-inline-start: 6px; font-size: .6875rem; font-weight: 650; color: var(--muted); }
 .desktop-nav { display: flex; align-items: center; gap: 36px; }
 .desktop-nav a, .mobile-nav a { font-size: .9375rem; font-weight: 600; }
 .desktop-nav a:hover, .mobile-nav a:hover { color: var(--rust); }
@@ -298,6 +297,7 @@ textarea { resize: vertical; }
   h3 { font-size: 1.3rem; }
   .section-lede { font-size: 1rem; }
   .header-inner { display: flex; justify-content: space-between; min-height: 64px; }
+  .brand { width: 154px; }
   .desktop-nav, .header-cta { display: none; }
   .mobile-nav { display: block; }
   .mobile-nav summary { list-style: none; display: grid; place-items: center; width: 44px; height: 44px; cursor: pointer; }
