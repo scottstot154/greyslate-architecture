@@ -1,6 +1,5 @@
 import { Header, Footer } from "../components/brand";
 import ProjectBrowser from "../components/project-browser";
-import Compare from "../components/compare";
 import Contact from "../components/contact";
 import { loadPortfolio } from "../lib/project-store";
 import { projectDate } from "../lib/portfolio";
@@ -10,7 +9,6 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const {projects, studio} = await loadPortfolio();
   const featured = projects.find((project) => project.featured) ?? projects[0];
-  const renovation = projects.find((project) => project.comparison);
   const updates = projects.flatMap((project) => project.updates.map((update) => ({project, update})))
     .sort((a, b) => b.update.date.localeCompare(a.update.date)).slice(0, 3);
 
@@ -43,18 +41,6 @@ export default async function Home() {
         <ProjectBrowser projects={projects}/>
         {projects.some((project) => project.demo) && <p className="sample-note">Illustrative projects and AI-generated imagery for this preview.</p>}
       </section>
-
-      {renovation?.comparison && <section className="renovation-section section" aria-labelledby="reno-title">
-        <div className="shell renovation-grid">
-          <div>
-            <p className="eyebrow"><span/> RENOVATION</p>
-            <h2 id="reno-title">Before &amp; after</h2>
-            <p className="section-lede">{renovation.summary}</p>
-            <a className="button button-light" href={`/projects/${renovation.slug}`}>View {renovation.title}</a>
-          </div>
-          <Compare {...renovation.comparison}/>
-        </div>
-      </section>}
 
       {updates.length > 0 && <section className="shell section journal-section" aria-labelledby="journal-title">
         <p className="eyebrow"><span/> PROJECT JOURNAL</p>

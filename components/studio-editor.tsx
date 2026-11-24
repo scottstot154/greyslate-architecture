@@ -143,16 +143,6 @@ function ProjectForm({entry, isNew, onSave, setSaving, onUpload, uploading, save
       })}
       <button className="button button-outline" type="button" disabled={project.updates.length >= 30} onClick={() => assign("updates", [...project.updates, {date: "", title: "", note: ""}])}><Plus size={16}/> Add update</button>
     </fieldset>
-    {(project.comparison || project.category === "Renovation" && project.stage === "Completed") && <fieldset className="editor-fieldset">
-      <legend>Before &amp; after</legend>
-      {project.comparison && <div className="form-grid">
-        <PhotoInput title="Before" photo={project.comparison.before} onChange={(before) => assign("comparison", {before, after: project.comparison!.after})} onUpload={onUpload} required={published}/>
-        <PhotoInput title="After" photo={project.comparison.after} onChange={(after) => assign("comparison", {before: project.comparison!.before, after})} onUpload={onUpload} required={published}/>
-      </div>}
-      <button className="button button-outline" type="button" onClick={() => assign("comparison", project.comparison ? undefined : {before: emptyPhoto, after: emptyPhoto})}>
-        {project.comparison ? "Remove comparison" : "Add comparison"}
-      </button>
-    </fieldset>}
     <label className="checkbox-row"><input type="checkbox" checked={project.featured} onChange={(e) => assign("featured", e.target.checked)}/>Feature on homepage</label>
     {project.demo && <p className="form-note">Illustrative sample. Create a new project for real studio work.</p>}
     <label>Visibility<select value={published ? "published" : "draft"} onChange={(e) => setPublished(e.target.value === "published")}>
