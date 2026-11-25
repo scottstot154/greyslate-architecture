@@ -1,40 +1,90 @@
 # GreySlate Architecture
 
-An architecture portfolio, project journal, and private studio editor. The website runs on Vinext and Cloudflare Workers, with D1 for project records and R2 for editor uploads.
+Architecture portfolio, project journal, and protected studio editor. The app runs on Cloudflare Workers with Vinext, stores project records in D1, and stores editor uploads in R2.
 
-## Run locally
+## Architecture
 
-Use Node.js 22.13 or later. Run these commands from this repository, not the enclosing workspace:
+- **Runtime:** Cloudflare Workers
+- **Database:** D1, bound as `DB`
+- **Image storage:** R2, bound as `BUCKET`
+- **Editor identity:** Cloudflare Access
+- **Source and CI:** GitHub Actions
+- **Domain and TLS:** Cloudflare custom domain
+
+The public portfolio remains open. Cloudflare Access must protect `/studio-editor*` and `/api/editor*`. The Worker reads the authenticated Access identity and allows edits only when it matches the `GREYSLATE_EDITOR_EMAIL` secret.
+
+## Local development
+
+Requires Node.js 22.13 or later.
 
 ```sh
-npm run install:ci
-npm run typecheck
-npm test
-npm run build
-```
-
-For the first local run, initialize D1 using the configuration produced by the build:
-
-```sh
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_high_blacklash.sql
+npm ci
+cp .dev.vars.example .dev.vars
+npm run db:migrate:local
 npm run dev
 ```
 
-Open the local URL printed by the dev server. To try the editor locally, copy `.dev.vars.example` to `.dev.vars` before starting the dev server, then open `/studio-editor` and use the local mock sign-in. Do not use that mock account for hosting. Keep real environment values out of Git.
+Open the URL printed by Vinext. The ignored `.dev.vars` file supplies a localhost-only editor identity. Production never uses this local override.
 
-## Edit content
+Run the complete verification suite with:
 
-- **Portfolio:** Sign in at `/studio-editor` with the authorized editor account. Save a draft with a title and slug, then add project details, approved photos, and dated progress before publishing.
-- **Homepage image:** Use **Feature on homepage** on the project whose cover should lead the portfolio.
-- **Studio settings:** Set the public inquiry email and studio location. Disable illustrative projects after publishing the real portfolio. The inquiry form opens an email draft; it does not send or store messages.
-- **Brand and copy:** The approved wordmark is at `public/images/greyslate-logo.png`. The header and footer use `components/brand.tsx`; the homepage copy is in `app/page.tsx`.
+```sh
+npm run check
+```
 
-See the [launch checklist](docs/LAUNCH-CONTENT.md) for the remaining content and [project glossary](docs/CONTEXT.md) for terminology.
+## First Cloudflare deployment
 
-## GitHub and hosting
+Authenticate and create the production resources in the client-owned Cloudflare account:
 
-Create a private GitHub repository and use it for source control and pull requests. This repository already has Git history; do not initialize a second repository around it. The GitHub Actions workflow checks types, runs tests, and builds on pushes to `main` and on pull requests. It does not deploy or require hosting credentials.
+```sh
+npx wrangler login
+npx wrangler d1 create greyslate-production
+npx wrangler r2 bucket create greyslate-images
+```
 
-The live site is hosted separately on ChatGPT Sites. Its identity and D1/R2 bindings are tracked in `.openai/hosting.json`; the hosted editor account is configured through the `GREYSLATE_EDITOR_EMAIL` runtime setting. GitHub Pages cannot run this app's editor or server routes. Editor-created project records and uploaded images are hosted data and are not backed up by a Git push.
+Copy the D1 UUID returned by Cloudflare into `wrangler.json`, replacing the all-zero `database_id`. The R2 bucket name already matches the command above.
 
-Production migrations are managed through the Sites deployment workflow. For any schema change, generate a new migration with `npm run db:generate` and commit the SQL and Drizzle metadata. Keep applied migrations unchanged.
+Apply the schema and deploy:
+
+```sh
+npm run db:migrate:remote
+npm run deploy
+npx wrangler secret put GREYSLATE_EDITOR_EMAIL
+```
+
+Enter the approved editor email when prompted. Secrets and `.dev.vars` must never be committed.
+
+Then complete the dashboard steps in [Cloudflare handover](docs/CLOUDFLARE-HANDOVER.md): attach the custom domain, protect the editor paths with Access, disable unprotected alternate hostnames, and configure GitHub deployment credentials.
+
+## Routine deployment
+
+For a local authenticated release:
+
+```sh
+npm run check
+npm run db:migrate:remote
+npm run deploy
+```
+
+For GitHub deployment, run the **Deploy to Cloudflare** workflow after adding its two repository secrets. The workflow is manual by design so a source push cannot publish until the client account is fully configured.
+
+## Content management
+
+Open `/studio-editor` on the production domain and authenticate through Cloudflare Access. The editor can:
+
+- create drafts and publish projects;
+- upload and credit project photographs;
+- add dated construction updates;
+- choose the featured homepage project;
+- update the studio location and inquiry email; and
+- hide the illustrative sample projects.
+
+Project records live in D1 and uploaded photographs live in R2. They are runtime data and are not included in Git commits.
+
+Brand assets and fixed homepage copy remain in source:
+
+- `public/images/greyslate-logo.png`
+- `components/brand.tsx`
+- `app/page.tsx`
+
+See [launch content](docs/LAUNCH-CONTENT.md), [project vocabulary](docs/CONTEXT.md), and [Cloudflare handover](docs/CLOUDFLARE-HANDOVER.md).

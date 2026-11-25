@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { defaultStudio, draftProjectSchema, projectSchema, samples, studioSchema } from "../lib/portfolio.ts";
+import { evaluateEditorAccess } from "../lib/editor-policy.ts";
 
 test("the illustrative archive satisfies the same schema as editor submissions", () => {
   for (const project of samples) assert.deepEqual(projectSchema.parse(project), project);
@@ -44,4 +45,15 @@ test("an incomplete project can be saved as a draft but not published", () => {
   assert.equal(projectSchema.safeParse(draft).success, false);
   assert.equal(draftProjectSchema.safeParse({...draft, title: " "}).success, false);
   assert.equal(draftProjectSchema.safeParse({...draft, cover: {...image, src: "/untrusted.svg"}}).success, false);
+});
+
+test("studio access requires the configured Cloudflare Access identity", () => {
+  assert.deepEqual(evaluateEditorAccess(undefined, "owner@example.com"), {
+    configured: false, signedIn: true, allowed: false,
+  });
+  assert.deepEqual(evaluateEditorAccess("Owner@Example.com ", " owner@example.com"), {
+    configured: true, signedIn: true, allowed: true,
+  });
+  assert.equal(evaluateEditorAccess("owner@example.com", "visitor@example.com").allowed, false);
+  assert.equal(evaluateEditorAccess("owner@example.com", null).allowed, false);
 });

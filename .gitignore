@@ -32,11 +32,11 @@ yarn-error.log*
 !.dev.vars.example
 *.pem
 
-# Checkout-local tool state
+# Local Cloudflare state
 /.wrangler/
 /.sites-runtime/
 
-# Workspace scaffolding and publication archives
+# Workspace scaffolding
 /.agents/
 /.codex/
 /outputs/
