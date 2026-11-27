@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "greyslate-production",
-      "database_id": "00000000-0000-4000-8000-000000000000",
+      "database_id": "49209734-a660-4395-bd8b-e61185146c04",
       "migrations_dir": "drizzle"
     }
   ],
